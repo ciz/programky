@@ -27,6 +27,8 @@ class Nestvura
   end
 
   def bojuj_s(nestvura)
+    #TODO: zkontrolovat jestli stamina neni <= 0
+    # posunout test na smrt na zacatek?
     while true
       ja_utok = self.utok()
       nestvura_utok = nestvura.utok()
@@ -76,4 +78,4 @@ kolikrat.times do
   end
 end
 
-puts "Sance: #{ja_vyhra * 100.0 / kolikrat}"
+puts "Šance: #{ja_vyhra * 100.0 / kolikrat}%"
