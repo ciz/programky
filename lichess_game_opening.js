@@ -1,17 +1,18 @@
 // ==UserScript==
-// @name        lichess games opening tagger
+// @name        lichess rapid games
 // @namespace   Violentmonkey Scripts
-// @match       https://lichess.org/games*
+// @match       https://lichess.org/*
 // @grant       none
 // @version     1.0
-// @author      Vitezslav Cizek
-// @description Show opening names on Lichess preview games
+// @author      -
+// @description Show opening names on Lichess TV preview games
 // ==/UserScript==
 
 (function() {
     'use strict';
 
       // Add a small CSS style for the label
+
   if (!document.getElementById('opening-style')) {
     const style = document.createElement('style');
     style.id = 'opening-style';
@@ -30,18 +31,59 @@
   const pgncache = new Map();
 
 async function getOpening(id) {
-    if (pgncache.has(id)) return pgncache.get(id);
+   // If we already have a Promise or a final value, return it
+    if (pgncache.has(id)) {
+        return pgncache.get(id);
+    }
 
-    const pgn = `https://lichess.org/game/export/${id}?pgnInJson=true`;
-    const data = await fetch(pgn,  {
-            headers: { 'Accept': 'application/json' }
-        }).then(r => r.json());
-    const opening = data.opening?.name || "Unknown";
-//console.log(opening)
- pgncache.set(id, opening);
-    return opening;
+    // Create a Promise immediately and store it
+    const promise = fetch(`https://lichess.org/game/export/${id}?pgnInJson=true`, {
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const opening = data.opening?.name || "Unknown";
+        pgncache.set(id, opening);   // Replace Promise with final value
+        return opening;
+    })
+    .catch(err => {
+        console.error("Opening fetch failed:", err);
+        pgncache.delete(id); // allow retry later
+        return "Unknown";
+    });
+
+    // Store the Promise immediately so parallel calls share it
+    pgncache.set(id, promise);
+
+    return promise;
+
 }
 
+  // -------------------------------
+    // ROUTING BASED ON URL
+    // -------------------------------
+    const path = location.pathname;
+
+    // game previews
+    if (path.startsWith("/games")) {
+
+        runRapidGamesScript();
+        return;
+    }
+
+    // individual game
+  if (/^\/[A-Za-z0-9]{8}$/.test(path)) {
+        runGamePageScript();
+        return;
+    }
+
+    // no match
+    return;
+
+    // -------------------------------
+    // 1) RAPID GAMES PAGE
+    // -------------------------------
+    function runRapidGamesScript() {
 
 function addOpening(minigame, opening) {
     // Remove old labels
@@ -79,4 +121,50 @@ async function processMinigame(minigame) {
     const observer = new MutationObserver(scan);
 
     observer.observe(document.body, { childList: true, subtree: true });
+}
+
+    // -------------------------------
+    // 2) INDIVIDUAL GAME PAGE
+    // -------------------------------
+    function runGamePageScript() {
+        const id = location.pathname.split('/')[1];
+
+       // Wait for .material-bottom to appear
+        waitForMaterialBottom(async bottom => {
+            const opening = await getOpening(id);
+
+            bottom.querySelectorAll('.opening-tag').forEach(e => e.remove());
+
+            const tag = document.createElement('div');
+            tag.className = 'opening-tag';
+            tag.textContent = opening;
+
+//            bottom.appendChild(tag);
+          bottom.insertAdjacentElement("afterend", tag);
+
+        });
+    }
+
+    // -------------------------------
+    // Helper: wait for .material-bottom
+    // -------------------------------
+    function waitForMaterialBottom(callback) {
+          let done = false;
+
+    const check = () => {
+        if (done) return;
+        const bottom = document.querySelector('.material-bottom');
+        if (bottom) {
+            done = true;
+            obs.disconnect();
+            callback(bottom);
+        }
+    };
+    const obs = new MutationObserver(check);
+    obs.observe(document.body, { childList: true, subtree: true });
+
+    check(); // run immediately in case it's already there
+
+ }
+
 })();
