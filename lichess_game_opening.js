@@ -71,8 +71,9 @@ async function getOpening(id) {
         return;
     }
 
-    // individual game
-  if (/^\/[A-Za-z0-9]{8}$/.test(path)) {
+    // individual game eg. https://lichess.org/PC7Rsd27
+    // some are from black's POV eg. https://lichess.org/PC7Rsd27/black
+  if (/^\/[A-Za-z0-9]{8}(\/black)?$/.test(path)) {
         runGamePageScript();
         return;
     }
