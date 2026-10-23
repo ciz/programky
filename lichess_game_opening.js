@@ -31,6 +31,7 @@
   const pgncache = new Map();
 
 async function getOpening(id) {
+   //   alert("Fetching opening for: " + id);
    // If we already have a Promise or a final value, return it
     if (pgncache.has(id)) {
         return pgncache.get(id);
@@ -112,8 +113,9 @@ async function processMinigame(minigame) {
 
     gamecache.add(minigame);
 
-            //const minigame = nowplaying.childNodes.item(0);
-            const idecko = minigame.pathname.split('/')[1];
+  // URL is https://lichess.org/game/jlcJelRn
+     // previously worked const idecko = minigame.pathname.split('/')[1];
+            const idecko = minigame.pathname.split('/')[2];
           const opening = await getOpening(idecko);
     addOpening(minigame, opening);
 
@@ -128,7 +130,7 @@ async function processMinigame(minigame) {
     // 2) INDIVIDUAL GAME PAGE
     // -------------------------------
     function runGamePageScript() {
-        const id = location.pathname.split('/')[1];
+        const id = location.pathname.split('/')[2];
 
        // Wait for .material-bottom to appear
         waitForMaterialBottom(async bottom => {
